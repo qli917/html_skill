@@ -15,12 +15,13 @@ Use the bundled script for repeatable extraction:
 
 ```bash
 python3 scripts/extract_html_main.py input.html --format markdown
-python3 scripts/extract_html_main.py https://example.com/article --browser --format json
+python3 scripts/extract_html_main.py https://example.com/article --format json
 python3 scripts/extract_html_main.py input.html --output body.txt
+python3 scripts/extract_html_main.py https://example.com/article --no-browser --format markdown
 python3 scripts/extract_html_main.py https://example.com/article --selector ".article-body" --save-domain-class
 ```
 
-Prefer `--browser` for URLs, SPA pages, pages with lazy-loaded text, paywall overlays, or HTML whose useful content is injected by JavaScript. Omit `--browser` for saved HTML when static parsing is enough.
+URLs use Playwright/Chromium by default, then fall back to static HTTP fetching if browser rendering is unavailable. Use `--no-browser` only for simple pages or when you explicitly want static fetching. Use `--browser` to force rendering for local files or raw HTML whose useful content is injected by JavaScript.
 
 ## Manual Selector Cache
 
@@ -49,7 +50,7 @@ For manual selection in DevTools, paste `scripts/pick_main_selector.js` into the
 ## Workflow
 
 1. Identify the input type: URL, local `.html`, raw HTML string, or already-rendered DOM dump.
-2. If the page likely depends on JavaScript, use Chrome/Playwright through the script’s `--browser` mode.
+2. For URLs, let the script use Chrome/Playwright first; for local files or raw HTML, add `--browser` when JavaScript rendering is needed.
 3. Extract candidate blocks from semantic containers first: `article`, `main`, `[role=main]`, content-like classes/ids.
 4. Score candidates by text density, paragraph count, punctuation, link density, boilerplate penalties, and heading proximity.
 5. Clean the winning block: remove scripts/styles/nav/footer/aside/forms, hidden nodes, repeated menu text, cookie banners, share widgets, comment areas, and tracking text.
@@ -68,6 +69,7 @@ For manual selection in DevTools, paste `scripts/pick_main_selector.js` into the
 When using Chrome/Playwright:
 
 - Launch headless Chromium unless visual inspection is required.
+- Render URLs by default so JavaScript, SPA shells, and lazy-loaded正文 are available before extraction.
 - Wait for `networkidle` or a short timeout, then scroll once or twice to trigger lazy-loaded正文.
 - Remove overlays that block reading only after the page has loaded.
 - Prefer DOM text from the rendered page over raw `innerText` for the whole body; whole-body extraction usually over-includes navigation.

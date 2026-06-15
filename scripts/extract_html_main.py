@@ -67,17 +67,23 @@ class Extraction:
     diagnostics: dict
 
 
-def load_source(source: str, use_browser: bool, timeout_ms: int) -> tuple[str, str]:
-    if use_browser or source.startswith(("http://", "https://")) and use_browser:
+def is_url(source: str) -> bool:
+    return source.startswith(("http://", "https://"))
+
+
+def load_source(source: str, use_browser: bool, no_browser: bool, timeout_ms: int) -> tuple[str, str]:
+    should_render = use_browser or (is_url(source) and not no_browser)
+    if should_render:
         rendered = render_with_playwright(source, timeout_ms)
         if rendered:
             return rendered, "browser"
 
-    if source.startswith(("http://", "https://")):
+    if is_url(source):
         req = urllib.request.Request(source, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=max(5, timeout_ms // 1000)) as resp:
             charset = resp.headers.get_content_charset() or "utf-8"
-            return resp.read().decode(charset, errors="replace"), "url-static"
+            method = "url-static" if no_browser else "url-static-browser-fallback"
+            return resp.read().decode(charset, errors="replace"), method
 
     path = Path(source)
     if path.exists():
@@ -477,7 +483,17 @@ def path_prefix_for(path: str) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", help="URL, local HTML path, or raw HTML string")
-    parser.add_argument("--browser", action="store_true", help="render with Playwright/Chromium when available")
+    browser_group = parser.add_mutually_exclusive_group()
+    browser_group.add_argument(
+        "--browser",
+        action="store_true",
+        help="force Playwright/Chromium rendering for local files or raw HTML; URLs render by default",
+    )
+    browser_group.add_argument(
+        "--no-browser",
+        action="store_true",
+        help="skip Playwright/Chromium and fetch URLs with a static HTTP request",
+    )
     parser.add_argument("--format", choices=["text", "markdown", "json"], default="text")
     parser.add_argument("--output", help="write result to this file")
     parser.add_argument("--timeout-ms", type=int, default=15000)
@@ -517,7 +533,7 @@ def main() -> int:
         cache = load_selector_cache(selector_cache)
         selector, cached_rule = find_cached_selector(args.source, cache)
 
-    raw, method = load_source(args.source, args.browser, args.timeout_ms)
+    raw, method = load_source(args.source, args.browser, args.no_browser, args.timeout_ms)
     result = extract(raw, method, selector=selector)
     if cached_rule:
         result.diagnostics["selector_rule"] = cached_rule
