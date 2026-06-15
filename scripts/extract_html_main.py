@@ -4,14 +4,17 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import html
 import json
 import re
 import sys
 import urllib.request
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
+from urllib.parse import urlparse
 
 
 BAD_RE = re.compile(
@@ -125,6 +128,8 @@ def soup_from_html(raw_html: str):
 
 
 def node_label(node) -> str:
+    if not getattr(node, "attrs", None):
+        return getattr(node, "name", "") or ""
     parts = [node.name or ""]
     attrs = []
     for key in ("id", "class", "role"):
@@ -140,6 +145,8 @@ def node_label(node) -> str:
 
 def remove_noise(soup) -> None:
     for tag in list(soup.find_all(True)):
+        if not getattr(tag, "attrs", None):
+            continue
         label = node_label(tag)
         style = (tag.get("style") or "").replace(" ", "").lower()
         if (
@@ -255,13 +262,28 @@ def dedupe_keep_order(lines: Iterable[str]) -> list[str]:
     return out
 
 
-def extract(raw_html: str, method: str) -> Extraction:
+def extract(raw_html: str, method: str, selector: str | None = None) -> Extraction:
+    raw_html = unwrap_embedded_article_html(raw_html)
     soup = soup_from_html(raw_html)
     title = soup.title.get_text(" ", strip=True) if soup.title else ""
-    remove_noise(soup)
 
-    scored = sorted(((score_node(node), node) for node in candidates(soup)), key=lambda item: item[0], reverse=True)
-    best_score, best = scored[0] if scored else (0.0, soup.body or soup)
+    selector_found = False
+    if selector:
+        best = soup.select_one(selector)
+        if best is not None:
+            selector_found = True
+            remove_noise(best)
+            best_score = score_node(best)
+            scored = [(best_score, best)]
+        else:
+            remove_noise(soup)
+            scored = sorted(((score_node(node), node) for node in candidates(soup)), key=lambda item: item[0], reverse=True)
+            best_score, best = scored[0] if scored else (0.0, soup.body or soup)
+    else:
+        remove_noise(soup)
+        scored = sorted(((score_node(node), node) for node in candidates(soup)), key=lambda item: item[0], reverse=True)
+        best_score, best = scored[0] if scored else (0.0, soup.body or soup)
+
     markdown = html_to_markdown(best)
     text = "\n\n".join(clean_lines(best.get_text("\n", strip=True)))
     confidence = min(0.99, max(0.05, best_score / 2500))
@@ -276,8 +298,129 @@ def extract(raw_html: str, method: str) -> Extraction:
             "best_score": round(best_score, 2),
             "best_node": node_label(best)[:160],
             "browser_rendered": method == "browser",
+            "selector": selector,
+            "selector_found": selector_found,
         },
     )
+
+
+def unwrap_embedded_article_html(raw_html: str) -> str:
+    match = re.search(r"window\.DATA\s*=\s*(\{.*?\});\s*</script>", raw_html, re.S)
+    if not match:
+        return raw_html
+    try:
+        data = json.loads(match.group(1))
+    except Exception:
+        return raw_html
+    origin = data.get("originContent") or {}
+    text = origin.get("text")
+    if isinstance(text, str) and len(text) > 100:
+        return text
+    return raw_html
+
+
+def default_selector_cache_path() -> Path:
+    return Path.home() / ".codex" / "html_main_selectors.json"
+
+
+def source_rule_fields(source: str) -> dict:
+    parsed = urlparse(source)
+    if parsed.scheme in ("http", "https") and parsed.netloc:
+        return {
+            "kind": "url",
+            "netloc": parsed.netloc.lower(),
+            "path": parsed.path or "/",
+            "pattern": f"{parsed.netloc.lower()}{parsed.path or '/'}",
+        }
+    path = Path(source)
+    return {
+        "kind": "file",
+        "netloc": "",
+        "path": str(path),
+        "pattern": str(path),
+    }
+
+
+def load_selector_cache(path: Path) -> dict:
+    if not path.exists():
+        return {"version": 1, "rules": []}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def write_selector_cache(path: Path, cache: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(cache, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def selector_rule_matches(rule: dict, source: str) -> bool:
+    fields = source_rule_fields(source)
+    if rule.get("kind") and rule.get("kind") != fields["kind"]:
+        return False
+    if fields["kind"] == "url":
+        netloc = (rule.get("netloc") or "").lower()
+        if netloc and netloc != fields["netloc"]:
+            return False
+        path_prefix = rule.get("path_prefix")
+        if path_prefix and not fields["path"].startswith(path_prefix):
+            return False
+        pattern = rule.get("pattern")
+        if pattern and not fnmatch.fnmatch(fields["pattern"], pattern):
+            return False
+        return bool(netloc or path_prefix or pattern)
+    pattern = rule.get("pattern")
+    return bool(pattern and fnmatch.fnmatch(fields["path"], pattern))
+
+
+def find_cached_selector(source: str, cache: dict) -> tuple[str | None, dict | None]:
+    matches = [rule for rule in cache.get("rules", []) if selector_rule_matches(rule, source)]
+    if not matches:
+        return None, None
+    matches.sort(key=lambda rule: len(rule.get("path_prefix") or rule.get("pattern") or ""), reverse=True)
+    return matches[0].get("selector"), matches[0]
+
+
+def save_selector_rule(source: str, selector: str, cache_path: Path, pattern: str | None = None) -> None:
+    cache = load_selector_cache(cache_path)
+    fields = source_rule_fields(source)
+    now = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    if fields["kind"] == "url":
+        rule = {
+            "kind": "url",
+            "netloc": fields["netloc"],
+            "path_prefix": pattern or path_prefix_for(fields["path"]),
+            "selector": selector,
+            "created_at": now,
+        }
+    else:
+        rule = {
+            "kind": "file",
+            "pattern": pattern or fields["path"],
+            "selector": selector,
+            "created_at": now,
+        }
+
+    rules = cache.setdefault("rules", [])
+    rules[:] = [
+        item
+        for item in rules
+        if not (
+            item.get("kind") == rule.get("kind")
+            and item.get("netloc") == rule.get("netloc")
+            and item.get("path_prefix") == rule.get("path_prefix")
+            and item.get("pattern") == rule.get("pattern")
+        )
+    ]
+    rules.append(rule)
+    write_selector_cache(cache_path, cache)
+
+
+def path_prefix_for(path: str) -> str:
+    if not path or path == "/":
+        return "/"
+    parts = [part for part in path.split("/") if part]
+    if len(parts) <= 1:
+        return "/"
+    return "/" + "/".join(parts[:-1]) + "/"
 
 
 def main() -> int:
@@ -287,10 +430,43 @@ def main() -> int:
     parser.add_argument("--format", choices=["text", "markdown", "json"], default="text")
     parser.add_argument("--output", help="write result to this file")
     parser.add_argument("--timeout-ms", type=int, default=15000)
+    parser.add_argument("--selector", help="CSS selector for the main content node")
+    parser.add_argument(
+        "--selector-cache",
+        default=str(default_selector_cache_path()),
+        help="JSON cache for reusable CSS selectors",
+    )
+    parser.add_argument(
+        "--save-selector",
+        action="store_true",
+        help="save --selector into --selector-cache for this source before extraction",
+    )
+    parser.add_argument(
+        "--selector-pattern",
+        help="override cached rule pattern/path prefix, for example /rain/a/ or news.qq.com/rain/a/*",
+    )
     args = parser.parse_args()
 
+    selector_cache = Path(args.selector_cache).expanduser()
+    if args.save_selector and not args.selector:
+        raise SystemExit("--save-selector requires --selector")
+    if args.save_selector:
+        save_selector_rule(args.source, args.selector, selector_cache, args.selector_pattern)
+
+    selector = args.selector
+    cached_rule = None
+    if not selector:
+        cache = load_selector_cache(selector_cache)
+        selector, cached_rule = find_cached_selector(args.source, cache)
+
     raw, method = load_source(args.source, args.browser, args.timeout_ms)
-    result = extract(raw, method)
+    result = extract(raw, method, selector=selector)
+    if cached_rule:
+        result.diagnostics["selector_rule"] = cached_rule
+        result.method += "+selector-cache"
+    elif selector:
+        result.method += "+selector"
+
     if args.format == "json":
         payload = json.dumps(result.__dict__, ensure_ascii=False, indent=2)
     elif args.format == "markdown":
