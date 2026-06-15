@@ -360,6 +360,8 @@ def selector_rule_matches(rule: dict, source: str) -> bool:
         netloc = (rule.get("netloc") or "").lower()
         if netloc and netloc != fields["netloc"]:
             return False
+        if rule.get("scope") == "domain_class":
+            return bool(rule.get("class_selector") or rule.get("selector"))
         path_prefix = rule.get("path_prefix")
         if path_prefix and not fields["path"].startswith(path_prefix):
             return False
@@ -375,8 +377,15 @@ def find_cached_selector(source: str, cache: dict) -> tuple[str | None, dict | N
     matches = [rule for rule in cache.get("rules", []) if selector_rule_matches(rule, source)]
     if not matches:
         return None, None
-    matches.sort(key=lambda rule: len(rule.get("path_prefix") or rule.get("pattern") or ""), reverse=True)
-    return matches[0].get("selector"), matches[0]
+    matches.sort(
+        key=lambda rule: (
+            1 if rule.get("scope") == "domain_class" else 0,
+            len(rule.get("path_prefix") or rule.get("pattern") or ""),
+        ),
+        reverse=True,
+    )
+    selector = matches[0].get("class_selector") or matches[0].get("selector")
+    return selector, matches[0]
 
 
 def save_selector_rule(source: str, selector: str, cache_path: Path, pattern: str | None = None) -> None:
@@ -414,6 +423,48 @@ def save_selector_rule(source: str, selector: str, cache_path: Path, pattern: st
     write_selector_cache(cache_path, cache)
 
 
+def selector_classes(selector: str) -> list[str]:
+    return [match.group(1).replace("\\.", ".") for match in re.finditer(r"\.([_a-zA-Z][-_a-zA-Z0-9]*)", selector)]
+
+
+def class_selector_from_selector(selector: str) -> str:
+    classes = selector_classes(selector)
+    if not classes:
+        return selector
+    return "." + ".".join(classes)
+
+
+def save_domain_class_rule(source: str, selector: str, cache_path: Path) -> None:
+    cache = load_selector_cache(cache_path)
+    fields = source_rule_fields(source)
+    if fields["kind"] != "url":
+        save_selector_rule(source, selector, cache_path)
+        return
+
+    now = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    rule = {
+        "kind": "url",
+        "scope": "domain_class",
+        "netloc": fields["netloc"],
+        "selector": selector,
+        "class_selector": class_selector_from_selector(selector),
+        "classes": selector_classes(selector),
+        "created_at": now,
+    }
+    rules = cache.setdefault("rules", [])
+    rules[:] = [
+        item
+        for item in rules
+        if not (
+            item.get("kind") == "url"
+            and item.get("scope") == "domain_class"
+            and item.get("netloc") == fields["netloc"]
+        )
+    ]
+    rules.append(rule)
+    write_selector_cache(cache_path, cache)
+
+
 def path_prefix_for(path: str) -> str:
     if not path or path == "/":
         return "/"
@@ -442,15 +493,22 @@ def main() -> int:
         help="save --selector into --selector-cache for this source before extraction",
     )
     parser.add_argument(
+        "--save-domain-class",
+        action="store_true",
+        help="save --selector as a domain-level class rule and reuse it for the same domain",
+    )
+    parser.add_argument(
         "--selector-pattern",
         help="override cached rule pattern/path prefix, for example /rain/a/ or news.qq.com/rain/a/*",
     )
     args = parser.parse_args()
 
     selector_cache = Path(args.selector_cache).expanduser()
-    if args.save_selector and not args.selector:
-        raise SystemExit("--save-selector requires --selector")
-    if args.save_selector:
+    if (args.save_selector or args.save_domain_class) and not args.selector:
+        raise SystemExit("--save-selector/--save-domain-class requires --selector")
+    if args.save_domain_class:
+        save_domain_class_rule(args.source, args.selector, selector_cache)
+    elif args.save_selector:
         save_selector_rule(args.source, args.selector, selector_cache, args.selector_pattern)
 
     selector = args.selector
