@@ -1,0 +1,7 @@
+interface:
+  display_name: "Extract HTML Main"
+  short_description: "Extract main text from messy HTML pages"
+  default_prompt: "Use $extract-html-main to extract the main readable content from this HTML or URL."
+
+policy:
+  allow_implicit_invocation: true
