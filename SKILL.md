@@ -17,7 +17,7 @@ Use the bundled script for repeatable extraction:
 python3 scripts/extract_html_main.py input.html --format markdown
 python3 scripts/extract_html_main.py https://example.com/article --browser --format json
 python3 scripts/extract_html_main.py input.html --output body.txt
-python3 scripts/extract_html_main.py https://example.com/article --selector "article" --save-selector
+python3 scripts/extract_html_main.py https://example.com/article --selector ".article-body" --save-domain-class
 ```
 
 Prefer `--browser` for URLs, SPA pages, pages with lazy-loaded text, paywall overlays, or HTML whose useful content is injected by JavaScript. Omit `--browser` for saved HTML when static parsing is enough.
@@ -26,14 +26,15 @@ Prefer `--browser` for URLs, SPA pages, pages with lazy-loaded text, paywall ove
 
 Use a local selector cache when a human has already identified the正文 container for a site. The default cache path is `~/.codex/html_main_selectors.json`.
 
+Prefer domain-level class rules for large batches: save the selected正文 container class by domain. On later pages from the same domain, if the class exists, use it and skip manual selection. If the class is absent or `selector_found` is false, treat the page as needing manual DevTools selection again.
+
 1. Open the page in Chrome and choose the正文 container.
 2. Save the selector:
 
 ```bash
 python3 scripts/extract_html_main.py "https://news.qq.com/rain/a/20260614A05A1300" \
-  --selector "div.rich_media_content" \
-  --save-selector \
-  --selector-pattern "/rain/a/" \
+  --selector ".rich_media_content" \
+  --save-domain-class \
   --format markdown
 ```
 
