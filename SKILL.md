@@ -17,9 +17,33 @@ Use the bundled script for repeatable extraction:
 python3 scripts/extract_html_main.py input.html --format markdown
 python3 scripts/extract_html_main.py https://example.com/article --browser --format json
 python3 scripts/extract_html_main.py input.html --output body.txt
+python3 scripts/extract_html_main.py https://example.com/article --selector "article" --save-selector
 ```
 
 Prefer `--browser` for URLs, SPA pages, pages with lazy-loaded text, paywall overlays, or HTML whose useful content is injected by JavaScript. Omit `--browser` for saved HTML when static parsing is enough.
+
+## Manual Selector Cache
+
+Use a local selector cache when a human has already identified the正文 container for a site. The default cache path is `~/.codex/html_main_selectors.json`.
+
+1. Open the page in Chrome and choose the正文 container.
+2. Save the selector:
+
+```bash
+python3 scripts/extract_html_main.py "https://news.qq.com/rain/a/20260614A05A1300" \
+  --selector "div.rich_media_content" \
+  --save-selector \
+  --selector-pattern "/rain/a/" \
+  --format markdown
+```
+
+3. On future pages matching the same cached rule, omit `--selector`; the script uses the cached selector automatically:
+
+```bash
+python3 scripts/extract_html_main.py "https://news.qq.com/rain/a/20260615A0000000" --format markdown
+```
+
+For manual selection in DevTools, paste `scripts/pick_main_selector.js` into the Console, click the正文 node, then use the generated selector in `--selector`.
 
 ## Workflow
 
@@ -51,6 +75,7 @@ When using Chrome/Playwright:
 ## Resources
 
 - `scripts/extract_html_main.py`: extraction utility for URLs and local HTML.
+- `scripts/pick_main_selector.js`: DevTools helper for manually selecting and exporting a正文 CSS selector.
 - `references/heuristics.md`: scoring and cleanup details. Read it before modifying the extraction logic or handling a difficult page.
 
 ## Dependency Handling
