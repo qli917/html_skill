@@ -30,6 +30,61 @@ python3 -m playwright install chromium
 
 If Playwright or Chromium is unavailable, URL extraction automatically falls back to static HTTP fetching.
 
+## How It Works
+
+The extractor first loads the most complete DOM it can get, then scores likely content containers and cleans the winning node before output.
+
+```mermaid
+flowchart TD
+    A["Input"] --> B{"Input type"}
+    B -->|URL| C["Render with Playwright"]
+    B -->|Local HTML / raw HTML| D["Static HTML parsing"]
+    C --> E{"Render succeeded?"}
+    E -->|Yes| F["Use rendered DOM"]
+    E -->|No| D
+    D --> F
+
+    F --> G["Remove obvious noise"]
+    G --> G1["script/style/nav/header/footer/aside/form"]
+    G --> G2["hidden/display:none/aria-hidden"]
+    G --> G3["comments, ads, share bars, related links, login prompts"]
+
+    G1 --> H["Build candidate content nodes"]
+    G2 --> H
+    G3 --> H
+
+    H --> H1["article, main, [role=main]"]
+    H --> H2["content-like class/id names"]
+    H --> H3["large div/section/td/body nodes"]
+
+    H1 --> I["Score candidates"]
+    H2 --> I
+    H3 --> I
+
+    I --> I1["Reward text length, paragraphs, punctuation"]
+    I --> I2["Reward semantic tags and content-like names"]
+    I --> I3["Penalize high link density and short menu-like text"]
+    I --> I4["Penalize nav/comment/share/related/ad names"]
+
+    I1 --> J["Pick best node"]
+    I2 --> J
+    I3 --> J
+    I4 --> J
+
+    J --> K{"Selector provided?"}
+    K -->|Matched| L["Use selector node"]
+    K -->|Missing or unmatched| M["Use best scored node"]
+
+    L --> N["Convert to output"]
+    M --> N
+    N --> N1["Preserve paragraphs, headings, lists, quotes, code, tables, useful image alt text"]
+    N1 --> O["Deduplicate and normalize whitespace"]
+    O --> P{"Format"}
+    P -->|text| Q["Plain text"]
+    P -->|markdown| R["Markdown"]
+    P -->|json| S["Content plus confidence and diagnostics"]
+```
+
 ## Quick Start
 
 Extract Markdown from a local HTML file:
