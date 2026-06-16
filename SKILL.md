@@ -44,7 +44,7 @@ python3 scripts/extract_html_main.py "https://news.qq.com/rain/a/20260614A05A130
 python3 scripts/extract_html_main.py "https://news.qq.com/rain/a/20260615A0000000" --format markdown
 ```
 
-Chrome DevTools and Chrome extension based selector picking are disabled. Do not use `scripts/pick_main_selector.js` or `selector_picker_extension/`.
+Browser-based selector picking is not included. Use an explicit `--selector` when a site needs a known content container.
 
 ## Workflow
 
@@ -77,7 +77,7 @@ When using Chrome/Playwright:
 ## Resources
 
 - `scripts/extract_html_main.py`: extraction utility for URLs and local HTML.
-- `scripts/pick_main_selector.js`: disabled DevTools selector picker, kept only as commented reference code.
+- `scripts/make_html_compare.py`: original-vs-extracted HTML comparison page generator.
 - `references/heuristics.md`: scoring and cleanup details. Read it before modifying the extraction logic or handling a difficult page.
 
 ## Dependency Handling

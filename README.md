@@ -18,7 +18,6 @@
 - URL 默认优先使用 Playwright/Chromium 渲染，失败后自动退回静态 HTTP 抓取。
 - 支持手动指定 CSS selector，适合正文容器已知的网站。
 - 支持按域名或路径缓存可复用 selector。
-- Chrome DevTools 辅助脚本和 Chrome 扩展选择器已禁用。
 - 可生成浏览器可打开的“原 HTML vs 提取正文 HTML”对比页。
 
 ### 依赖
@@ -155,7 +154,7 @@ python3 scripts/extract_html_main.py "https://example.com/news/123" \
 
 ### 手动 Selector
 
-Chrome DevTools 辅助脚本和 Chrome 扩展选择器已禁用。需要指定正文容器时，请直接把已知 selector 传给 `--selector`。
+需要指定正文容器时，请直接把已知 selector 传给 `--selector`。
 
 ### 对比原 HTML 和正文 HTML
 
@@ -174,9 +173,6 @@ python3 scripts/make_html_compare.py input.html \
 - `SKILL.md`：Codex skill 指令和工作流。
 - `scripts/extract_html_main.py`：主提取命令行工具。
 - `scripts/make_html_compare.py`：原 HTML 与正文 HTML 对比页生成器。
-- `scripts/pick_main_selector.js`：已禁用的 DevTools selector 选择脚本，仅保留注释参考代码。
-- `selector_receiver.py`：本地 selector 缓存接收器。
-- `selector_picker_extension/`：已禁用的 Chrome 右键菜单 selector 选择扩展。
 - `references/heuristics.md`：候选节点评分与清理规则。
 
 ### 开发检查
@@ -184,7 +180,7 @@ python3 scripts/make_html_compare.py input.html \
 运行语法检查：
 
 ```bash
-python3 -m py_compile scripts/extract_html_main.py selector_receiver.py scripts/make_html_compare.py
+python3 -m py_compile scripts/extract_html_main.py scripts/make_html_compare.py
 ```
 
 运行一个最小抽取冒烟测试：
@@ -192,6 +188,10 @@ python3 -m py_compile scripts/extract_html_main.py selector_receiver.py scripts/
 ```bash
 python3 scripts/extract_html_main.py '<html><body><nav>Home</nav><article><p>Main text, with punctuation.</p></article></body></html>' --format markdown
 ```
+
+### 许可证
+
+MIT License，见 `LICENSE`。
 
 ## English
 
@@ -205,7 +205,6 @@ The extractor treats main content as the text a reader came for. It removes navi
 - Uses Playwright/Chromium first for URLs, then falls back to static HTTP fetching.
 - Supports manual CSS selectors when a site has a known content container.
 - Caches reusable selectors by domain or path.
-- Chrome DevTools and Chrome extension selector pickers are disabled.
 - Generates browser-openable comparison pages for original HTML vs extracted HTML.
 
 ### Requirements
@@ -342,7 +341,7 @@ On later pages from the same domain, omit `--selector`; the script will use the 
 
 ### Manual Selectors
 
-Chrome DevTools and Chrome extension selector pickers are disabled. When a main-content container is known, pass that selector directly with `--selector`.
+When a main-content container is known, pass that selector directly with `--selector`.
 
 ### Compare Original And Extracted HTML
 
@@ -361,9 +360,6 @@ Open `compare.html` in Chrome. The left pane shows the original HTML, and the ri
 - `SKILL.md`: Codex skill instructions and workflow.
 - `scripts/extract_html_main.py`: Main extraction CLI.
 - `scripts/make_html_compare.py`: Original-vs-extracted HTML comparison page generator.
-- `scripts/pick_main_selector.js`: disabled DevTools selector picker, kept only as commented reference code.
-- `selector_receiver.py`: Local selector cache receiver.
-- `selector_picker_extension/`: disabled Chrome context-menu selector picker.
 - `references/heuristics.md`: Candidate scoring and cleanup rules.
 
 ### Development Checks
@@ -371,7 +367,7 @@ Open `compare.html` in Chrome. The left pane shows the original HTML, and the ri
 Run a syntax check:
 
 ```bash
-python3 -m py_compile scripts/extract_html_main.py selector_receiver.py scripts/make_html_compare.py
+python3 -m py_compile scripts/extract_html_main.py scripts/make_html_compare.py
 ```
 
 Run a tiny extraction smoke test:
@@ -379,3 +375,7 @@ Run a tiny extraction smoke test:
 ```bash
 python3 scripts/extract_html_main.py '<html><body><nav>Home</nav><article><p>Main text, with punctuation.</p></article></body></html>' --format markdown
 ```
+
+### License
+
+MIT License. See `LICENSE`.

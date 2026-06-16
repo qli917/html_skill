@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 
 # Local extraction samples and generated comparison pages.
+tmp/
 tmp-*.html
 extracted-*.md
 compare-*.html
