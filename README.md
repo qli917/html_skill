@@ -18,7 +18,7 @@
 - URL 默认优先使用 Playwright/Chromium 渲染，失败后自动退回静态 HTTP 抓取。
 - 支持手动指定 CSS selector，适合正文容器已知的网站。
 - 支持按域名或路径缓存可复用 selector。
-- 提供 Chrome DevTools 辅助脚本和可选 Chrome 扩展，用于人工选择正文容器。
+- Chrome DevTools 辅助脚本和 Chrome 扩展选择器已禁用。
 - 可生成浏览器可打开的“原 HTML vs 提取正文 HTML”对比页。
 
 ### 依赖
@@ -153,22 +153,9 @@ python3 scripts/extract_html_main.py "https://example.com/news/123" \
 
 之后处理同域名页面时可以省略 `--selector`；命中缓存规则后脚本会自动使用。
 
-### 手动选择 Selector
+### 手动 Selector
 
-在 Chrome DevTools 中手动选择：
-
-1. 打开页面。
-2. 把 `scripts/pick_main_selector.js` 粘贴到 Console。
-3. 点击正文最外层节点。
-4. 将生成的 selector 用于 `--selector`。
-
-仓库也包含一个小型 Chrome 扩展，位于 `selector_picker_extension/`。先启动本地 receiver：
-
-```bash
-python3 selector_receiver.py
-```
-
-然后在 Chrome 中以 unpacked extension 方式加载 `selector_picker_extension/`。在正文区域右键选择“保存为正文 selector”，即可把规则保存到本地。
+Chrome DevTools 辅助脚本和 Chrome 扩展选择器已禁用。需要指定正文容器时，请直接把已知 selector 传给 `--selector`。
 
 ### 对比原 HTML 和正文 HTML
 
@@ -187,9 +174,9 @@ python3 scripts/make_html_compare.py input.html \
 - `SKILL.md`：Codex skill 指令和工作流。
 - `scripts/extract_html_main.py`：主提取命令行工具。
 - `scripts/make_html_compare.py`：原 HTML 与正文 HTML 对比页生成器。
-- `scripts/pick_main_selector.js`：DevTools selector 选择脚本。
-- `selector_receiver.py`：Chrome 扩展使用的本地 selector 缓存接收器。
-- `selector_picker_extension/`：Chrome 右键菜单 selector 选择扩展。
+- `scripts/pick_main_selector.js`：已禁用的 DevTools selector 选择脚本，仅保留注释参考代码。
+- `selector_receiver.py`：本地 selector 缓存接收器。
+- `selector_picker_extension/`：已禁用的 Chrome 右键菜单 selector 选择扩展。
 - `references/heuristics.md`：候选节点评分与清理规则。
 
 ### 开发检查
@@ -218,7 +205,7 @@ The extractor treats main content as the text a reader came for. It removes navi
 - Uses Playwright/Chromium first for URLs, then falls back to static HTTP fetching.
 - Supports manual CSS selectors when a site has a known content container.
 - Caches reusable selectors by domain or path.
-- Provides a Chrome DevTools helper and optional extension for picking selectors.
+- Chrome DevTools and Chrome extension selector pickers are disabled.
 - Generates browser-openable comparison pages for original HTML vs extracted HTML.
 
 ### Requirements
@@ -353,22 +340,9 @@ python3 scripts/extract_html_main.py "https://example.com/news/123" \
 
 On later pages from the same domain, omit `--selector`; the script will use the cached rule when it matches.
 
-### Manual Selector Picking
+### Manual Selectors
 
-For manual selection in Chrome DevTools:
-
-1. Open the page.
-2. Paste `scripts/pick_main_selector.js` into the Console.
-3. Click the outermost main-content node.
-4. Use the generated selector with `--selector`.
-
-The repository also includes a small Chrome extension in `selector_picker_extension/`. Start the receiver first:
-
-```bash
-python3 selector_receiver.py
-```
-
-Then load `selector_picker_extension/` as an unpacked extension in Chrome. Right-click the main-content area and choose "保存为正文 selector" to save the rule locally.
+Chrome DevTools and Chrome extension selector pickers are disabled. When a main-content container is known, pass that selector directly with `--selector`.
 
 ### Compare Original And Extracted HTML
 
@@ -387,9 +361,9 @@ Open `compare.html` in Chrome. The left pane shows the original HTML, and the ri
 - `SKILL.md`: Codex skill instructions and workflow.
 - `scripts/extract_html_main.py`: Main extraction CLI.
 - `scripts/make_html_compare.py`: Original-vs-extracted HTML comparison page generator.
-- `scripts/pick_main_selector.js`: DevTools selector picker.
-- `selector_receiver.py`: Local selector cache receiver for the Chrome extension.
-- `selector_picker_extension/`: Chrome context-menu selector picker.
+- `scripts/pick_main_selector.js`: disabled DevTools selector picker, kept only as commented reference code.
+- `selector_receiver.py`: Local selector cache receiver.
+- `selector_picker_extension/`: disabled Chrome context-menu selector picker.
 - `references/heuristics.md`: Candidate scoring and cleanup rules.
 
 ### Development Checks

@@ -1,3 +1,5 @@
+// Disabled: Chrome DevTools manual selector picking is no longer used.
+/*
 (() => {
   const style = document.createElement("style");
   style.textContent = `
@@ -81,3 +83,4 @@
   document.addEventListener("click", onClick, true);
   console.log("正文选择器已启动：点击正文最外层节点，selector JSON 会复制到剪贴板并下载。");
 })();
+*/

@@ -27,10 +27,9 @@ URLs use Playwright/Chromium by default, then fall back to static HTTP fetching 
 
 Use a local selector cache when a human has already identified the正文 container for a site. The default cache path is `~/.codex/html_main_selectors.json`.
 
-Prefer domain-level class rules for large batches: save the selected正文 container class by domain. On later pages from the same domain, if the class exists, use it and skip manual selection. If the class is absent or `selector_found` is false, treat the page as needing manual DevTools selection again.
+Prefer domain-level class rules for large batches: save a known正文 container class by domain. On later pages from the same domain, if the class exists, use it. If the class is absent or `selector_found` is false, ask for an explicit selector or continue with automatic extraction.
 
-1. Open the page in Chrome and choose the正文 container.
-2. Save the selector:
+1. Save a known selector:
 
 ```bash
 python3 scripts/extract_html_main.py "https://news.qq.com/rain/a/20260614A05A1300" \
@@ -45,7 +44,7 @@ python3 scripts/extract_html_main.py "https://news.qq.com/rain/a/20260614A05A130
 python3 scripts/extract_html_main.py "https://news.qq.com/rain/a/20260615A0000000" --format markdown
 ```
 
-For manual selection in DevTools, paste `scripts/pick_main_selector.js` into the Console, click the正文 node, then use the generated selector in `--selector`.
+Chrome DevTools and Chrome extension based selector picking are disabled. Do not use `scripts/pick_main_selector.js` or `selector_picker_extension/`.
 
 ## Workflow
 
@@ -78,7 +77,7 @@ When using Chrome/Playwright:
 ## Resources
 
 - `scripts/extract_html_main.py`: extraction utility for URLs and local HTML.
-- `scripts/pick_main_selector.js`: DevTools helper for manually selecting and exporting a正文 CSS selector.
+- `scripts/pick_main_selector.js`: disabled DevTools selector picker, kept only as commented reference code.
 - `references/heuristics.md`: scoring and cleanup details. Read it before modifying the extraction logic or handling a difficult page.
 
 ## Dependency Handling

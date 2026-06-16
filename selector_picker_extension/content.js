@@ -1,3 +1,5 @@
+// Disabled: Chrome/manual selector picking is no longer used.
+/*
 (() => {
   if (window.__codexContextSelectorPickerLoaded) return;
   window.__codexContextSelectorPickerLoaded = true;
@@ -101,3 +103,4 @@
     });
   });
 })();
+*/
