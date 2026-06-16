@@ -54,11 +54,18 @@ The extractor loads the best DOM it can get, removes obvious noise nodes, builds
 - `SKILL.md`: Codex skill instructions and workflow.
 - `scripts/extract_html_main.py`: Main extraction CLI.
 - `scripts/make_html_compare.py`: Original-vs-extracted HTML comparison page generator.
+- `scripts/smoke_test.sh`: Local syntax and extraction smoke test.
 - `examples/`: Runnable messy HTML samples.
 - `references/heuristics.md`: Candidate scoring and cleanup rules.
 - `docs/RELEASE_CHECKLIST.md`: Pre-release checklist and repository setting suggestions.
 
 ## Development checks
+
+```bash
+bash scripts/smoke_test.sh
+```
+
+Or run checks manually:
 
 ```bash
 python3 -m py_compile scripts/extract_html_main.py scripts/make_html_compare.py
