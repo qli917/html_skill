@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Messy Page Example - Extract HTML Main</title>
+  <style>
+    body { font-family: sans-serif; }
+    .layout { display: grid; grid-template-columns: 220px 1fr 220px; gap: 24px; }
+    .ad, .comments, footer, nav { border: 1px solid #ddd; padding: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Example News Portal</h1>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/tech">Tech</a>
+      <a href="/sports">Sports</a>
+      <a href="/login">Login</a>
+    </nav>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <h2>Related Links</h2>
+      <ul>
+        <li><a href="/story-a">Ten quick updates</a></li>
+        <li><a href="/story-b">Sponsored tool list</a></li>
+        <li><a href="/story-c">Weekly newsletter</a></li>
+      </ul>
+    </aside>
+
+    <main>
+      <article class="article-body">
+        <h1>How AI Agents Clean Messy Web Pages</h1>
+        <p>Main insight: before an AI agent can summarize a page, it needs the page's real article body instead of navigation, ads, comments, and repeated template text.</p>
+        <p>A practical extractor should first find the most content-dense container, then remove obvious noise nodes, normalize whitespace, and preserve useful structure such as headings, paragraphs, lists, quotes, and code blocks.</p>
+        <p>This example intentionally includes navigation, sidebars, advertisements, comments, and a footer so the extractor has to choose the article instead of the whole page.</p>
+        <ul>
+          <li>Keep high-signal article paragraphs.</li>
+          <li>Drop menus, ads, and related links.</li>
+          <li>Return Markdown that is ready for summarization or RAG ingestion.</li>
+        </ul>
+        <blockquote>Good extraction is not about keeping the most HTML. It is about keeping the content a reader actually came for.</blockquote>
+      </article>
+    </main>
+
+    <aside class="ad related recommend">
+      <h2>Advertisement</h2>
+      <p>Buy this unrelated product now. Click here. Subscribe today.</p>
+      <a href="/ad-1">Ad link</a>
+      <a href="/ad-2">Another ad link</a>
+    </aside>
+  </div>
+
+  <section class="comments">
+    <h2>Comments</h2>
+    <p>First comment: nice post!</p>
+    <p>Second comment: visit my profile.</p>
+  </section>
+
+  <footer>
+    <p>Copyright 2026 Example News Portal. Privacy. Terms. Contact.</p>
+  </footer>
+</body>
+</html>
